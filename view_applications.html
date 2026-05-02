@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Applications Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #6ee7b7;
+    --accent2: #818cf8;
+    --accent3: #fb923c;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --applied: #6ee7b7;
+    --skipped: #fbbf24;
+    --error: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(110,231,183,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110,231,183,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb-1 {
+    width: 500px; height: 500px;
+    background: rgba(110,231,183,0.06);
+    top: -100px; left: -100px;
+  }
+  .glow-orb-2 {
+    width: 400px; height: 400px;
+    background: rgba(129,140,248,0.05);
+    bottom: -100px; right: -100px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Header ── */
+  header {
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .header-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-sub {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--surface);
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(110,231,183,0.04);
+    transform: translateY(-2px);
+  }
+  .upload-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+  .upload-zone h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .upload-zone p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .upload-zone .btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #0a0a0f;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .upload-zone .btn:hover { transform: scale(1.04); }
+  #fileInput { display: none; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-3px); border-color: var(--accent2); }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+  }
+  .stat-card.total::after  { background: var(--accent2); }
+  .stat-card.applied::after { background: var(--applied); }
+  .stat-card.skipped::after { background: var(--skipped); }
+  .stat-card.error::after   { background: var(--error); }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .stat-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .stat-card.total  .stat-number { color: var(--accent2); }
+  .stat-card.applied .stat-number { color: var(--applied); }
+  .stat-card.skipped .stat-number { color: var(--skipped); }
+  .stat-card.error   .stat-number { color: var(--error); }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    align-items: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px 10px 38px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent2); }
+  .search-wrap::before {
+    content: '⌕';
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .filter-btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .filter-btn.active { border-color: var(--accent); background: rgba(110,231,183,0.1); color: var(--accent); }
+  .filter-btn.active-skip { border-color: var(--skipped); background: rgba(251,191,36,0.1); color: var(--skipped); }
+  .filter-btn.active-err  { border-color: var(--error); background: rgba(248,113,113,0.1); color: var(--error); }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .table-header-row {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .table-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .row-count {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+  thead th:hover { color: var(--text); }
+  thead th .sort-icon { margin-left: 4px; opacity: 0.4; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42,42,58,0.6);
+    transition: background 0.15s;
+    animation: rowIn 0.3s ease both;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .td-ts { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+  .td-title {
+    font-weight: 500;
+    color: var(--text);
+    max-width: 200px;
+  }
+  .td-company { color: var(--accent2); }
+  .td-location { color: var(--muted); font-size: 11.5px; }
+
+  .td-url a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 11px;
+    border-bottom: 1px dashed var(--border);
+    transition: color 0.2s;
+  }
+  .td-url a:hover { color: var(--accent); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge::before { content: '●'; font-size: 8px; }
+  .badge-applied { background: rgba(110,231,183,0.12); color: var(--applied); border: 1px solid rgba(110,231,183,0.2); }
+  .badge-skipped { background: rgba(251,191,36,0.12); color: var(--skipped); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-error   { background: rgba(248,113,113,0.12); color: var(--error);   border: 1px solid rgba(248,113,113,0.2); }
+
+  .td-notes { color: var(--muted); font-size: 11px; max-width: 160px; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+  }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .empty-state p { color: var(--muted); font-size: 13px; }
+
+  /* ── Dashboard hidden until data loaded ── */
+  #dashboard { display: none; }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--applied), var(--accent2));
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+
+<div class="container">
+  <header>
+    <div class="header-label">Job Hunt Tracker</div>
+    <h1>Applications<br>Dashboard</h1>
+    <p class="header-sub">Drop your applications.csv to visualize your job hunt</p>
+  </header>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="upload-icon">📂</div>
+    <h2>Load applications.csv</h2>
+    <p>Drag & drop your file here, or click to browse</p>
+    <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+    <input type="file" id="fileInput" accept=".csv">
+  </div>
+
+  <!-- Dashboard (shown after data loads) -->
+  <div id="dashboard">
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card total">
+        <div class="stat-label">Total Jobs</div>
+        <div class="stat-number" id="statTotal">0</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card applied">
+        <div class="stat-label">Applied</div>
+        <div class="stat-number" id="statApplied">0</div>
+        <div class="stat-sub" id="statAppliedPct">—</div>
+      </div>
+      <div class="stat-card skipped">
+        <div class="stat-label">Skipped</div>
+        <div class="stat-number" id="statSkipped">0</div>
+        <div class="stat-sub" id="statSkippedPct">—</div>
+      </div>
+      <div class="stat-card error">
+        <div class="stat-label">Errors</div>
+        <div class="stat-number" id="statError">0</div>
+        <div class="stat-sub" id="statErrorPct">—</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search title, company, location…">
+      </div>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="applied" onclick="setFilter('applied',this)">✓ Applied</button>
+      <button class="filter-btn" data-filter="skipped" onclick="setFilter('skipped',this)">⊘ Skipped</button>
+      <button class="filter-btn" data-filter="error" onclick="setFilter('error',this)">✕ Errors</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-header-row">
+        <span class="table-title">Application Log</span>
+        <span class="row-count" id="rowCount">0 entries</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="appTable">
+          <thead>
+            <tr>
+              <th onclick="sortBy('timestamp')">Time <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('job_title')">Job Title <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('company')">Company <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('location')">Location <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('status')">Status <span class="sort-icon">↕</span></th>
+              <th>Link</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <div class="emoji">🔍</div>
+          <h3>No results found</h3>
+          <p>Try adjusting your search or filter</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <footer>LinkedIn Auto Apply Dashboard &nbsp;·&nbsp; Drop a new CSV anytime to refresh</footer>
+</div>
+
+<script>
+  let allData = [];
+  let currentFilter = 'all';
+  let currentSort = { col: 'timestamp', dir: -1 };
+
+  // ── File handling ────────────────────────────────────────────────────────
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput  = document.getElementById('fileInput');
+
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+  uploadZone.addEventListener('click', e => {
+    if (e.target.classList.contains('btn') || e.target === uploadZone || e.target.tagName !== 'BUTTON')
+      fileInput.click();
+  });
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseCSV(e.target.result);
+      if (parsed.length === 0) {
+        alert('No data found in CSV. Make sure the bot has run at least once.');
+        return;
+      }
+      allData = parsed;
+      showDashboard();
+    };
+    reader.readAsText(file);
+  }
+
+  // ── CSV parser ───────────────────────────────────────────────────────────
+  function parseCSV(text) {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    return lines.slice(1).map(line => {
+      const vals = splitCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (vals[i] || '').trim().replace(/^"|"$/g, ''));
+      return obj;
+    }).filter(r => r.status); // skip blank rows
+  }
+
+  function splitCSVLine(line) {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; }
+      else if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; }
+      else cur += line[i];
+    }
+    result.push(cur);
+    return result;
+  }
+
+  // ── Dashboard ────────────────────────────────────────────────────────────
+  function showDashboard() {
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    updateStats();
+    renderTable();
+  }
+
+  function updateStats() {
+    const total   = allData.length;
+    const applied = allData.filter(r => r.status === 'applied').length;
+    const skipped = allData.filter(r => r.status === 'skipped').length;
+    const errors  = allData.filter(r => r.status === 'error').length;
+    const pct = n => total ? Math.round(n/total*100) + '%' : '—';
+
+    document.getElementById('statTotal').textContent   = total;
+    document.getElementById('statApplied').textContent = applied;
+    document.getElementById('statSkipped').textContent = skipped;
+    document.getElementById('statError').textContent   = errors;
+    document.getElementById('statAppliedPct').textContent = pct(applied) + ' success rate';
+    document.getElementById('statSkippedPct').textContent = pct(skipped) + ' of total';
+    document.getElementById('statErrorPct').textContent   = pct(errors)  + ' of total';
+
+    setTimeout(() => {
+      document.getElementById('progressBar').style.width = pct(applied);
+    }, 200);
+  }
+
+  // ── Filter & Search ──────────────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.remove('active','active-skip','active-err');
+    });
+    if (f === 'all')     btn.classList.add('active');
+    if (f === 'applied') btn.classList.add('active');
+    if (f === 'skipped') btn.classList.add('active-skip');
+    if (f === 'error')   btn.classList.add('active-err');
+    renderTable();
+  }
+
+  // ── Sort ─────────────────────────────────────────────────────────────────
+  function sortBy(col) {
+    if (currentSort.col === col) currentSort.dir *= -1;
+    else { currentSort.col = col; currentSort.dir = 1; }
+    document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+    event.currentTarget.classList.add('sorted');
+    renderTable();
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  function renderTable() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    let rows = allData.filter(r => {
+      if (currentFilter !== 'all' && r.status !== currentFilter) return false;
+      if (query) {
+        return (r.job_title||'').toLowerCase().includes(query) ||
+               (r.company||'').toLowerCase().includes(query) ||
+               (r.location||'').toLowerCase().includes(query);
+      }
+      return true;
+    });
+
+    // Sort
+    rows.sort((a, b) => {
+      const av = (a[currentSort.col] || '').toLowerCase();
+      const bv = (b[currentSort.col] || '').toLowerCase();
+      return av < bv ? -currentSort.dir : av > bv ? currentSort.dir : 0;
+    });
+
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      document.getElementById('rowCount').textContent = '0 entries';
+      return;
+    }
+    empty.style.display = 'none';
+    document.getElementById('rowCount').textContent = rows.length + ' entr' + (rows.length === 1 ? 'y' : 'ies');
+
+    tbody.innerHTML = rows.map((r, i) => {
+      const badgeClass = r.status === 'applied' ? 'badge-applied' : r.status === 'skipped' ? 'badge-skipped' : 'badge-error';
+      const statusLabel = r.status === 'applied' ? 'Applied' : r.status === 'skipped' ? 'Skipped' : 'Error';
+      const urlCell = r.job_url
+        ? `<a href="${escHtml(r.job_url)}" target="_blank" rel="noopener">View →</a>`
+        : '<span style="color:var(--muted)">—</span>';
+      const delay = Math.min(i * 0.03, 0.5);
+
+      return `<tr style="animation-delay:${delay}s">
+        <td class="td-ts">${escHtml(r.timestamp||'—')}</td>
+        <td class="td-title" title="${escHtml(r.job_title||'')}">${escHtml(r.job_title||'—')}</td>
+        <td class="td-company" title="${escHtml(r.company||'')}">${escHtml(r.company||'—')}</td>
+        <td class="td-location" title="${escHtml(r.location||'')}">${escHtml(r.location||'—')}</td>
+        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+        <td class="td-url">${urlCell}</td>
+        <td class="td-notes" title="${escHtml(r.notes||'')}">${escHtml(r.notes||'—')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
